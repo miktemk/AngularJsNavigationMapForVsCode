@@ -1,14 +1,26 @@
 import * as vscode from 'vscode';
-import * as path from 'path'
-import * as fs from 'fs'
+import * as path from 'path';
+import * as fs from 'fs';
+import {DefinitionProviderBase} from './DefinitionProviderBase';
+import {CodeNavigCacheProvider} from './CodeNavigCache';
 
-export class HTMLDefinitionProvider implements vscode.DefinitionProvider {
+export class HTMLDefinitionProvider extends DefinitionProviderBase {
+
+    constructor(navigDataProvider: CodeNavigCacheProvider) {
+        super(navigDataProvider);
+    }
 
     // private regexSnake = new RegExp(`[a-zA-Z0-9_-]*`);
     public provideDefinition(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken) : Thenable<vscode.Location> {
         return new Promise((resolve, reject) => {
             let range = document.getWordRangeAtPosition(position); //, this.regexSnake);
             let word = document.getText(range);
+
+            let cachedMatch = this.findCachedMatch(document, position);
+            if (cachedMatch) {
+                resolve(cachedMatch);
+                return;
+            }
 
             var fileDir = path.dirname(document.fileName);
             //let fileDirRelative = path.relative(vscode.workspace.rootPath, fileDir);

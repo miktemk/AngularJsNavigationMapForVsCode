@@ -21,12 +21,14 @@
         "title": "Rebuid AngularJS Navigation Data"
       }
     ],
-    "keybindings": [{
+    "keybindings": [
+      {
         "command": "miktemk.angularJSNavig.RebuidCache",
         "key": "ctrl+shift+j ctrl+shift+k",
         "mac": "cmd+shift+j cmd+shift+k",
         "when": "editorTextFocus"
-    }]
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "tsc -p ./",
@@ -42,6 +44,8 @@
     "@types/mocha": "^2.2.32"
   },
   "dependencies": {
-    "@types/underscore": "^1.8.1"
+    "@types/underscore": "^1.8.1",
+    "class-transformer": "^0.1.6",
+    "ts-serializer": "^1.0.1"
   }
 }
