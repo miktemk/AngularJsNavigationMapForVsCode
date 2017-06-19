@@ -2,6 +2,9 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import * as path from 'path'
+import * as fs from 'fs'
+
 
 const HTML_MODE: vscode.DocumentFilter = { language: 'html', scheme: 'file' };
 
@@ -19,29 +22,44 @@ const HTML_TAGS: string[] = [
 
 class HTMLDefinitionProvider implements vscode.DefinitionProvider {
 
-    private regexSnake = new RegExp(`[a-zA-Z0-9_-]*`);
-    private snakeToCamel(s: string){
-        return s.replace(/(\-\w)/g, function(m){return m[1].toUpperCase();});
-    }
+    // private regexSnake = new RegExp(`[a-zA-Z0-9_-]*`);
+    // private snakeToCamel(s: string){
+    //     return s.replace(/(\-\w)/g, function(m){return m[1].toUpperCase();});
+    // }
+
     public provideDefinition(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken) : Thenable<vscode.Location> {
         return new Promise((resolve, reject) => {
-            let range = document.getWordRangeAtPosition(position, this.regexSnake);
+            let range = document.getWordRangeAtPosition(position); //, this.regexSnake);
             let word = document.getText(range);
 
-            let rangeStr = `${range.start.line}:${range.start.character} - ${range.end.line}:${range.end.character}`;
-            console.log(`provideDefinition: ${word} @ (${rangeStr})`);
-
-            let pattern1 = `^\\s*(private\\s+)?(${word})|^\\s*(public\\s+)?(${word})|^\\s*(protected\\s+)?(${word})`;
-            let pattern2 = `^\\s*(private\\s+)?(${word})\\(.*\\)|^\\s*(public\\s+)?(${word})\\(.*\\)|^\\s*(protected\\s+)?(${word})\\(.*\\)`;
-
-            console.log(pattern1);
-            console.log(pattern2);
-
-            //vscode.commands.executeCommand("workbench.action.findInFiles", "hero");
+            var fileDir = path.dirname(document.fileName);
+            //let fileDirRelative = path.relative(vscode.workspace.rootPath, fileDir);
+            let filesLocalAll = fs.readdirSync(fileDir);
+            var filesLocalJS = filesLocalAll.filter(x => x.endsWith('.js') && !x.endsWith('.spec.js'));
             
-            resolve();
+            let foundDef= false;
 
+            Promise.all(filesLocalJS.map(jsFile => {
+                let jsFileFullPath = path.join(fileDir, jsFile);
+                return vscode.workspace.openTextDocument(jsFileFullPath).then((jsDoc) => {
+                    let allText = jsDoc.getText();
+                    let indexOfScopeDot = allText.indexOf('scope.' + word);
+                    if (indexOfScopeDot == -1)
+                        return;
+
+                    foundDef = true;
+                    let jsUri = vscode.Uri.file(jsFileFullPath);
+                    let targetPosition = jsDoc.positionAt(indexOfScopeDot + 6); // + 6 to compensate for "scope."
+                    resolve(new vscode.Location(jsUri, targetPosition));
+                }, (error) => {
+                    // something bad happened, could not load WS file
+                });
+            })).then(() => {
+                if (!foundDef)
+                    resolve();
+            });
             
+/*
             // check word as function or property.
             if (HTML_TAGS.findIndex(tag => tag === word.toLowerCase()) >= 0) {
                 // console.log(`${word} is html tag.`);
