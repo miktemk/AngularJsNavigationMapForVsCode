@@ -17,10 +17,16 @@
   "contributes": {
     "commands": [
       {
-        "command": "extension.sayHello",
-        "title": "Hello World"
+        "command": "miktemk.angularJSNavig.RebuidCache",
+        "title": "Rebuid AngularJS Navigation Data"
       }
-    ]
+    ],
+    "keybindings": [{
+        "command": "miktemk.angularJSNavig.RebuidCache",
+        "key": "ctrl+shift+j ctrl+shift+k",
+        "mac": "cmd+shift+j cmd+shift+k",
+        "when": "editorTextFocus"
+    }]
   },
   "scripts": {
     "vscode:prepublish": "tsc -p ./",

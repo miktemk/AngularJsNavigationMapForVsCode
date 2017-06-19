@@ -20,13 +20,18 @@ const HTML_TAGS: string[] = [
     'click', 'mousemove',
 ];
 
+
+// https://jamesroberts.name/blog/2010/02/22/string-functions-for-javascript-trim-to-camel-case-to-dashed-and-to-underscore/
+function snakeToCamel(s: string):string {
+    return s.replace(/(\-\w)/g, function(m){return m[1].toUpperCase();});
+}
+function camelToSnake(s: string):string {
+    return s.replace(/([A-Z])/g, function($1){return "-"+$1.toLowerCase();});
+}
+
 class HTMLDefinitionProvider implements vscode.DefinitionProvider {
 
     // private regexSnake = new RegExp(`[a-zA-Z0-9_-]*`);
-    // private snakeToCamel(s: string){
-    //     return s.replace(/(\-\w)/g, function(m){return m[1].toUpperCase();});
-    // }
-
     public provideDefinition(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken) : Thenable<vscode.Location> {
         return new Promise((resolve, reject) => {
             let range = document.getWordRangeAtPosition(position); //, this.regexSnake);
@@ -58,63 +63,6 @@ class HTMLDefinitionProvider implements vscode.DefinitionProvider {
                 if (!foundDef)
                     resolve();
             });
-            
-/*
-            // check word as function or property.
-            if (HTML_TAGS.findIndex(tag => tag === word.toLowerCase()) >= 0) {
-                // console.log(`${word} is html tag.`);
-                resolve();
-            }
-
-            // if next character is '(', so word is function
-            if (document.getText(new vscode.Range(range.end, range.end.translate(0, 1))) === '(') {
-                wordType = 1;
-            }
-            // console.log(`wordType: ${wordType}`);
-
-            let pattern: string;
-            if (wordType === 0) {               // property
-                pattern = `^\\s*(private\\s+)?(${word})|^\\s*(public\\s+)?(${word})|^\\s*(protected\\s+)?(${word})`;
-            }
-            else {                              // function
-                pattern = `^\\s*(private\\s+)?(${word})\\(.*\\)|^\\s*(public\\s+)?(${word})\\(.*\\)|^\\s*(protected\\s+)?(${word})\\(.*\\)`;
-            }
-            let rgx = new RegExp(pattern);
-
-            // find function|property in ts
-            let htmlFile = document.fileName;
-            let fileNameWithoutExtension = htmlFile.slice(0, htmlFile.lastIndexOf('.'));
-            let tsFile = fileNameWithoutExtension + '.ts';
-            let tsUri = vscode.Uri.file(tsFile);
-            let enterClass = false;
-
-            vscode.workspace.openTextDocument(tsFile).then((tsDoc) => {
-
-//tsDoc.getText()
-
-                let lineCount = tsDoc.lineCount;
-                for (var li = 0; li < tsDoc.lineCount; li++) {
-                    let line = tsDoc.lineAt(li);
-                    if (line.isEmptyOrWhitespace) {
-                        continue;
-                    }
-                    if (!enterClass) {
-                        if (line.text.match(/\s+class\s+/)) {
-                            enterClass = true;
-                        }
-                        continue;
-                    }
-
-                    let m = line.text.match(rgx);
-                    if (m && m.length > 0)
-                    {
-                        let pos = line.text.indexOf(word);
-                        resolve(new vscode.Location(tsUri, new vscode.Position(li, pos)));
-                    }
-                }
-                resolve();
-            });
-            //*/
         });
     }
 }
@@ -131,6 +79,52 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.languages.registerDefinitionProvider(
             HTML_MODE, new HTMLDefinitionProvider())
     );
+
+    function tryToAddSymbolToCache(wsDoc, allText, symbolType, prefix) {
+        let indexOfSymbol = allText.indexOf(prefix);
+        if (indexOfSymbol != -1)
+        {
+            var wordPosition = wsDoc.positionAt(indexOfSymbol + prefix.length);
+            var wordRange = wsDoc.getWordRangeAtPosition(wordPosition);
+            var symbol = wsDoc.getText(wordRange);
+            var kebabCased = camelToSnake(symbol);
+            console.log(`TODO: add ${symbolType}: ${symbol} (${kebabCased})`);
+        }
+    }
+
+    var disposable = vscode.commands.registerCommand('miktemk.angularJSNavig.RebuidCache', () => {
+        vscode.workspace.findFiles('www/**/*.js', 'www/vendor/**').then(wsFiles => {
+            Promise.all(wsFiles.map(wsFile => {
+                return vscode.workspace.openTextDocument(wsFile.path).then((wsDoc) => {
+                    let allText = wsDoc.getText();
+                    
+                    tryToAddSymbolToCache(wsDoc, allText, 'directive', `.directive('`);
+                    tryToAddSymbolToCache(wsDoc, allText, 'service', `.service('`);
+                    tryToAddSymbolToCache(wsDoc, allText, 'factory', `.factory('`);
+                    tryToAddSymbolToCache(wsDoc, allText, 'constant', `.constant('`);
+
+                }, (error) => {
+                    // something bad happened, could not load WS file
+                });
+            })).then(() => {
+                console.log('TODO: save to JSON');
+
+                let cacheJsonFile = path.join(vscode.workspace.rootPath, '.vscode/miktemk-angularjs-navig-cache.json');
+                fs.writeFile(cacheJsonFile, JSON.stringify({
+                    directives: ['a', 'b', 'c'],
+                    services: ['a', 'b', 'c'],
+                    factories: ['a', 'b', 'c']
+                }, null, '  '), (errorMaybe) => {
+                    // if errorMaybe != null something bad happened, could not write to a cache file!!
+                });
+
+                // Display a message box to the user
+                vscode.window.showInformationMessage('AangularJS Navigation cache rebuit!');
+            });
+
+        });
+
+    });
 }
 
 // this method is called when your extension is deactivated
