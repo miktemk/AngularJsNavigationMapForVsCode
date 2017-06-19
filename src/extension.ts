@@ -18,21 +18,30 @@ const HTML_TAGS: string[] = [
 ];
 
 class HTMLDefinitionProvider implements vscode.DefinitionProvider {
+
+    private regexSnake = new RegExp(`[a-zA-Z0-9_-]*`);
+    private snakeToCamel(s: string){
+        return s.replace(/(\-\w)/g, function(m){return m[1].toUpperCase();});
+    }
     public provideDefinition(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken) : Thenable<vscode.Location> {
         return new Promise((resolve, reject) => {
-            let range = document.getWordRangeAtPosition(position);
+            let range = document.getWordRangeAtPosition(position, this.regexSnake);
             let word = document.getText(range);
-            if (word.endsWith('?')) {
-                word = word.slice(0, word.length - 1);
-            }
-            let wordType = 0;       // 0: property, 1: function
 
             let rangeStr = `${range.start.line}:${range.start.character} - ${range.end.line}:${range.end.character}`;
             console.log(`provideDefinition: ${word} @ (${rangeStr})`);
 
+            let pattern1 = `^\\s*(private\\s+)?(${word})|^\\s*(public\\s+)?(${word})|^\\s*(protected\\s+)?(${word})`;
+            let pattern2 = `^\\s*(private\\s+)?(${word})\\(.*\\)|^\\s*(public\\s+)?(${word})\\(.*\\)|^\\s*(protected\\s+)?(${word})\\(.*\\)`;
+
+            console.log(pattern1);
+            console.log(pattern2);
+
+            //vscode.commands.executeCommand("workbench.action.findInFiles", "hero");
+            
             resolve();
 
-            /*
+            
             // check word as function or property.
             if (HTML_TAGS.findIndex(tag => tag === word.toLowerCase()) >= 0) {
                 // console.log(`${word} is html tag.`);
@@ -62,6 +71,9 @@ class HTMLDefinitionProvider implements vscode.DefinitionProvider {
             let enterClass = false;
 
             vscode.workspace.openTextDocument(tsFile).then((tsDoc) => {
+
+//tsDoc.getText()
+
                 let lineCount = tsDoc.lineCount;
                 for (var li = 0; li < tsDoc.lineCount; li++) {
                     let line = tsDoc.lineAt(li);

@@ -6,3 +6,9 @@
  - https://github.com/mrmlnc/vscode-less/blob/master/src/server.ts
 
 tricks: https://github.com/Microsoft/vscode-tips-and-tricks
+
+### hacking FindInFiles in VsCode source code (!!!)
+
+so far the only usefuyl line is this bit, which happens on ENTER in searchWidget
+
+    this.searchHistory.add(this.searchInput.getValue());
