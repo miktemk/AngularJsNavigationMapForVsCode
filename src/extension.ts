@@ -4,9 +4,12 @@
 import * as vscode from 'vscode';
 import * as path from 'path'
 import * as fs from 'fs'
+import { HTMLDefinitionProvider } from './HTMLDefinitionProvider'
+import { JsDefinitionProvider } from './JsDefinitionProvider'
 
 
 const HTML_MODE: vscode.DocumentFilter = { language: 'html', scheme: 'file' };
+const JS_MODE: vscode.DocumentFilter = { language: 'javascript', scheme: 'file' };
 
 const HTML_TAGS: string[] = [
     'html', 'head', 'body',
@@ -29,42 +32,49 @@ function camelToSnake(s: string):string {
     return s.replace(/([A-Z])/g, function($1){return "-"+$1.toLowerCase();});
 }
 
-class HTMLDefinitionProvider implements vscode.DefinitionProvider {
-
-    // private regexSnake = new RegExp(`[a-zA-Z0-9_-]*`);
-    public provideDefinition(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken) : Thenable<vscode.Location> {
-        return new Promise((resolve, reject) => {
-            let range = document.getWordRangeAtPosition(position); //, this.regexSnake);
-            let word = document.getText(range);
-
-            var fileDir = path.dirname(document.fileName);
-            //let fileDirRelative = path.relative(vscode.workspace.rootPath, fileDir);
-            let filesLocalAll = fs.readdirSync(fileDir);
-            var filesLocalJS = filesLocalAll.filter(x => x.endsWith('.js') && !x.endsWith('.spec.js'));
-            
-            let foundDef= false;
-
-            Promise.all(filesLocalJS.map(jsFile => {
-                let jsFileFullPath = path.join(fileDir, jsFile);
-                return vscode.workspace.openTextDocument(jsFileFullPath).then((jsDoc) => {
-                    let allText = jsDoc.getText();
-                    let indexOfScopeDot = allText.indexOf('scope.' + word);
-                    if (indexOfScopeDot == -1)
-                        return;
-
-                    foundDef = true;
-                    let jsUri = vscode.Uri.file(jsFileFullPath);
-                    let targetPosition = jsDoc.positionAt(indexOfScopeDot + 6); // + 6 to compensate for "scope."
-                    resolve(new vscode.Location(jsUri, targetPosition));
-                }, (error) => {
-                    // something bad happened, could not load WS file
-                });
-            })).then(() => {
-                if (!foundDef)
-                    resolve();
-            });
-        });
+function tryToAddSymbolToCache(wsDoc, allText, symbolType, prefix) {
+    let indexOfSymbol = allText.indexOf(prefix);
+    if (indexOfSymbol != -1)
+    {
+        var wordPosition = wsDoc.positionAt(indexOfSymbol + prefix.length);
+        var wordRange = wsDoc.getWordRangeAtPosition(wordPosition);
+        var symbol = wsDoc.getText(wordRange);
+        var kebabCased = camelToSnake(symbol);
+        console.log(`TODO: add ${symbolType}: ${symbol} (${kebabCased})`);
     }
+}
+
+function miktemk_angularJSNavig_RebuidCache() {
+    vscode.workspace.findFiles('www/**/*.js', 'www/vendor/**').then(wsFiles => {
+        Promise.all(wsFiles.map(wsFile => {
+            return vscode.workspace.openTextDocument(wsFile.path).then((wsDoc) => {
+                let allText = wsDoc.getText();
+                
+                tryToAddSymbolToCache(wsDoc, allText, 'directive', `.directive('`);
+                tryToAddSymbolToCache(wsDoc, allText, 'service', `.service('`);
+                tryToAddSymbolToCache(wsDoc, allText, 'factory', `.factory('`);
+                tryToAddSymbolToCache(wsDoc, allText, 'constant', `.constant('`);
+
+            }, (error) => {
+                // something bad happened, could not load WS file
+            });
+        })).then(() => {
+            console.log('TODO: save to JSON');
+
+            let cacheJsonFile = path.join(vscode.workspace.rootPath, '.vscode/miktemk-angularjs-navig-cache.json');
+            fs.writeFile(cacheJsonFile, JSON.stringify({
+                directives: ['a', 'b', 'c'],
+                services: ['a', 'b', 'c'],
+                factories: ['a', 'b', 'c']
+            }, null, '  '), (errorMaybe) => {
+                // if errorMaybe != null something bad happened, could not write to a cache file!!
+            });
+
+            // Display a message box to the user
+            vscode.window.showInformationMessage('AangularJS Navigation cache rebuit!');
+        });
+
+    });
 }
 
 // this method is called when your extension is activated
@@ -80,51 +90,12 @@ export function activate(context: vscode.ExtensionContext) {
             HTML_MODE, new HTMLDefinitionProvider())
     );
 
-    function tryToAddSymbolToCache(wsDoc, allText, symbolType, prefix) {
-        let indexOfSymbol = allText.indexOf(prefix);
-        if (indexOfSymbol != -1)
-        {
-            var wordPosition = wsDoc.positionAt(indexOfSymbol + prefix.length);
-            var wordRange = wsDoc.getWordRangeAtPosition(wordPosition);
-            var symbol = wsDoc.getText(wordRange);
-            var kebabCased = camelToSnake(symbol);
-            console.log(`TODO: add ${symbolType}: ${symbol} (${kebabCased})`);
-        }
-    }
+    context.subscriptions.push(
+        vscode.languages.registerDefinitionProvider(
+            JS_MODE, new JsDefinitionProvider())
+    );
 
-    var disposable = vscode.commands.registerCommand('miktemk.angularJSNavig.RebuidCache', () => {
-        vscode.workspace.findFiles('www/**/*.js', 'www/vendor/**').then(wsFiles => {
-            Promise.all(wsFiles.map(wsFile => {
-                return vscode.workspace.openTextDocument(wsFile.path).then((wsDoc) => {
-                    let allText = wsDoc.getText();
-                    
-                    tryToAddSymbolToCache(wsDoc, allText, 'directive', `.directive('`);
-                    tryToAddSymbolToCache(wsDoc, allText, 'service', `.service('`);
-                    tryToAddSymbolToCache(wsDoc, allText, 'factory', `.factory('`);
-                    tryToAddSymbolToCache(wsDoc, allText, 'constant', `.constant('`);
-
-                }, (error) => {
-                    // something bad happened, could not load WS file
-                });
-            })).then(() => {
-                console.log('TODO: save to JSON');
-
-                let cacheJsonFile = path.join(vscode.workspace.rootPath, '.vscode/miktemk-angularjs-navig-cache.json');
-                fs.writeFile(cacheJsonFile, JSON.stringify({
-                    directives: ['a', 'b', 'c'],
-                    services: ['a', 'b', 'c'],
-                    factories: ['a', 'b', 'c']
-                }, null, '  '), (errorMaybe) => {
-                    // if errorMaybe != null something bad happened, could not write to a cache file!!
-                });
-
-                // Display a message box to the user
-                vscode.window.showInformationMessage('AangularJS Navigation cache rebuit!');
-            });
-
-        });
-
-    });
+    var disposable = vscode.commands.registerCommand('miktemk.angularJSNavig.RebuidCache', miktemk_angularJSNavig_RebuidCache);
 }
 
 // this method is called when your extension is deactivated
