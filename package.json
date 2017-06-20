@@ -28,7 +28,18 @@
         "mac": "cmd+shift+j cmd+shift+k",
         "when": "editorTextFocus"
       }
-    ]
+    ],
+    "configuration": {
+        "type": "object",
+        "title": "angularJSNavig configuration",
+        "properties": {
+            "angularJSNavig.generateCacheFile": {
+                "type": "boolean",
+                "default": false,
+                "description": "Turns on the code navigation cache file generation"
+            }
+        }
+    }
   },
   "scripts": {
     "vscode:prepublish": "tsc -p ./",

@@ -39,13 +39,14 @@ export class CodeNavigCacheProvider {
                         finalReject();
                     });
                 })).then(() => {
-                    console.log('cache is rebuilt');
-                    let cacheJsonFile = this.getCacheFilename();
-                    fs.writeFile(cacheJsonFile, JSON.stringify(this.entries, null, '  '), (errorMaybe) => {
-                        // if errorMaybe != null something bad happened, could not write to a cache file!!
-                        if (errorMaybe)
-                            finalReject();
-                    });
+                    if (this.getConfig_generateCacheFile()) {
+                        let cacheJsonFile = this.getCacheFilename();
+                        fs.writeFile(cacheJsonFile, JSON.stringify(this.entries, null, '  '), (errorMaybe) => {
+                            // if errorMaybe != null something bad happened, could not write to a cache file!!
+                            if (errorMaybe)
+                                finalReject();
+                        });
+                    }
                 }).then(() => {
                     finalResolve();
                 });
@@ -55,6 +56,14 @@ export class CodeNavigCacheProvider {
 
     public reloadFromCache():Thenable<void> {
         return new Promise<void>((finalResolve, finalReject) => {
+            if (!this.getConfig_generateCacheFile()) {
+                // NOTE: the only way to make reject happy is with a timeout, otherwise its too soon I guess
+                setTimeout(() => {
+                    finalReject('angularJSNavig.generateCacheFile');
+                }, 0);
+                return;
+            }
+
             let cacheJsonFile = this.getCacheFilename();
             fs.exists(cacheJsonFile, (fileExists) => {
                 if (!fileExists){
@@ -88,11 +97,17 @@ export class CodeNavigCacheProvider {
                     }
                 });
             });
+            //*/
         });
     }
 
     private getCacheFilename():string {
         return path.join(vscode.workspace.rootPath, '.vscode/angularjs-navig-cache.json');
+    }
+    private getConfig_generateCacheFile():boolean {
+        var config = vscode.workspace.getConfiguration();
+        var jkconfig = config['angularJSNavig']
+        return (jkconfig && jkconfig['generateCacheFile'])
     }
     private clearCache() {
         this.entries = [];
