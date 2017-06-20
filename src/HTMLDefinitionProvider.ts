@@ -4,6 +4,18 @@ import * as fs from 'fs';
 import {DefinitionProviderBase} from './DefinitionProviderBase';
 import {CodeNavigCacheProvider} from './CodeNavigCache';
 
+const HTML_TAGS: string[] = [
+    'html', 'head', 'body',
+    'script', 'style',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'div', 'p', 'a', 'img', 'span', 'strong', 'em',
+    'table', 'thead', 'tbody', 'th', 'tr', 'td',
+    'ul', 'li', 'ol', 'dl', 'dt', 'dd',
+    'form', 'input', 'label', 'button',
+    'class', 'id', 'src', 'href',
+    'click', 'mousemove',
+];
+
 export class HTMLDefinitionProvider extends DefinitionProviderBase {
 
     constructor(navigDataProvider: CodeNavigCacheProvider) {
@@ -15,6 +27,11 @@ export class HTMLDefinitionProvider extends DefinitionProviderBase {
         return new Promise((resolve, reject) => {
             let range = document.getWordRangeAtPosition(position); //, this.regexSnake);
             let word = document.getText(range);
+
+            if (HTML_TAGS.findIndex(tag => tag === word.toLowerCase()) >= 0) {
+                // console.log(`${word} is html tag.`);
+                resolve();
+            }
 
             let cachedMatch = this.findCachedMatch(document, position);
             if (cachedMatch) {
@@ -33,10 +50,23 @@ export class HTMLDefinitionProvider extends DefinitionProviderBase {
                 let jsFileFullPath = path.join(fileDir, jsFile);
                 return vscode.workspace.openTextDocument(jsFileFullPath).then((jsDoc) => {
                     let allText = jsDoc.getText();
-                    let indexOfScopeDot = allText.indexOf('scope.' + word);
+                    let indexOfScopeDot = -1;
+
+                    // plan A: try to find in scope { ... } AKA: https://regex101.com/r/jUuDt3/2
+                    var regex = new RegExp(`scope:\\s*{[^}]*(${word})[^}]*}`, 'g');
+                    var matchDirScope = regex.exec(allText);
+                    if (matchDirScope && matchDirScope.length > 1) {
+                        indexOfScopeDot = matchDirScope.index + matchDirScope[0].indexOf(matchDirScope[1]); //TODO: index bug here
+                    }
+
+                    // plan B: find a scope.myvar construct
+                    if (indexOfScopeDot == -1) {
+                        indexOfScopeDot = allText.indexOf('scope.' + word);
+                    }
+                    
                     if (indexOfScopeDot == -1)
                         return;
-
+                    
                     foundDef = true;
                     let jsUri = vscode.Uri.file(jsFileFullPath);
                     let targetPosition = jsDoc.positionAt(indexOfScopeDot + 6); // + 6 to compensate for "scope."
