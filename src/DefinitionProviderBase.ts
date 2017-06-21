@@ -29,9 +29,9 @@ export abstract class DefinitionProviderBase implements vscode.DefinitionProvide
 
         if (matchingEntries.length > 0) {
             var entry1 = matchingEntries[0];
-            let targetFullPath = path.join(vscode.workspace.rootPath, entry1.positionFile);
+            let targetFullPath = path.join(vscode.workspace.rootPath, entry1.definition.filePath);
             let targetUri = vscode.Uri.file(targetFullPath);
-            return new vscode.Location(targetUri, entry1.position);
+            return new vscode.Location(targetUri, entry1.definition.position);
         }
 
         return null;

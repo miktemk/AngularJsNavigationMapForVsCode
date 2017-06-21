@@ -3,14 +3,24 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as utils from './utils';
 
-export class CodeNavigEntry {
+export interface IMultipleOccurences {
+    occurences: string[];
+}
+
+export class NavigPosition {
+    filePath: string;
+    position: vscode.Position;
+}
+
+export class CodeNavigEntry implements IMultipleOccurences {
     value: string;
     occurences: string[];
     type: string;
-    position: vscode.Position;
-    positionFile: string;
+    definition: NavigPosition;
+    cachedReferences: NavigPosition[];
+    // position: vscode.Position;
+    // positionFile: string;
 }
-
 export class CodeNavigCacheProvider {
 
     private entries: CodeNavigEntry[] = [];
@@ -134,8 +144,11 @@ export class CodeNavigCacheProvider {
                 type: symbolType,
                 value: symbol,
                 occurences: occurences,
-                position: wordPosition,
-                positionFile: fileRelativePath
+                definition: {
+                    filePath: fileRelativePath,
+                    position: wordPosition
+                },
+                cachedReferences: [] // TODO: references
             });
         }
     }
