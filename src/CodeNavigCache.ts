@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import * as utils from './utils';
+import * as utilsjs from './utilsjs';
 
 export interface IMultipleOccurences {
     occurences: string[];
@@ -129,7 +129,7 @@ export class CodeNavigCacheProvider {
             var wordPosition = wsDoc.positionAt(indexOfSymbol + prefix.length);
             var wordRange = wsDoc.getWordRangeAtPosition(wordPosition);
             var symbol = wsDoc.getText(wordRange);
-            var kebabCased = utils.camelToSnake(symbol);
+            var kebabCased = utilsjs.camelToSnake(symbol);
             
             var occurences = [symbol];
             // TODO: this shit should be configurable
