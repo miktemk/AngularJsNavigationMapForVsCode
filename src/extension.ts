@@ -7,6 +7,7 @@ import * as fs from 'fs'
 import { HTMLDefinitionProvider } from './HTMLDefinitionProvider'
 import { JsDefinitionProvider } from './JsDefinitionProvider'
 import { CodeNavigCacheProvider } from './CodeNavigCache';
+import { JsReferenceProvider } from "./JsReferenceProvider";
 
 
 const HTML_MODE: vscode.DocumentFilter = { language: 'html', scheme: 'file' };
@@ -37,6 +38,11 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.languages.registerDefinitionProvider(
             JS_MODE, new JsDefinitionProvider(globalCacheProvider))
+    );
+
+    context.subscriptions.push(
+        vscode.languages.registerReferenceProvider(
+            JS_MODE, new JsReferenceProvider(globalCacheProvider))
     );
 
     var disposable = vscode.commands.registerCommand('miktemk.angularJSNavig.RebuidCache', miktemk_angularJSNavig_RebuidCache);

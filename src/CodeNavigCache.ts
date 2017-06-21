@@ -1,14 +1,25 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import * as utils from './utils';
+import * as utilsjs from './utils.js';
 
-export class CodeNavigEntry {
+export interface IMultipleOccurences {
+    occurences: string[];
+}
+
+export class NavigPosition {
+    position: vscode.Position;
+    filePath: string;
+}
+
+export class CodeNavigEntry implements IMultipleOccurences {
     value: string;
     occurences: string[];
     type: string;
-    position: vscode.Position;
-    positionFile: string;
+    definition: NavigPosition;
+    cachedReferences: NavigPosition[];
+    // position: vscode.Position;
+    // positionFile: string;
 }
 
 export class CodeNavigCacheProvider {
@@ -34,6 +45,7 @@ export class CodeNavigCacheProvider {
                         this.tryToAddSymbolToCache(relativePath, wsDoc, allText, 'constant', `.constant('`);
                         this.tryToAddSymbolToCache(relativePath, wsDoc, allText, 'controller', `.controller('`);
 
+                        console.log(`wsFile.path = ${wsFile.path}`);
                     }, (error) => {
                         // something bad happened, could not load WS file
                         finalReject();
@@ -119,7 +131,7 @@ export class CodeNavigCacheProvider {
             var wordPosition = wsDoc.positionAt(indexOfSymbol + prefix.length);
             var wordRange = wsDoc.getWordRangeAtPosition(wordPosition);
             var symbol = wsDoc.getText(wordRange);
-            var kebabCased = utils.camelToSnake(symbol);
+            var kebabCased = utilsjs.camelToSnake(symbol);
             
             var occurences = [symbol];
             // TODO: this shit should be configurable
@@ -134,8 +146,11 @@ export class CodeNavigCacheProvider {
                 type: symbolType,
                 value: symbol,
                 occurences: occurences,
-                position: wordPosition,
-                positionFile: fileRelativePath
+                definition: {
+                    position: wordPosition,
+                    filePath: fileRelativePath
+                },
+                cachedReferences: [] // TODO: references
             });
         }
     }
