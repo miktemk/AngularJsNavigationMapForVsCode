@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import * as utilsjs from './utils.js';
+import * as utilsjs from './utilsjs';
 
 export interface IMultipleOccurences {
     occurences: string[];
