@@ -32,6 +32,24 @@ export class CodeNavigCacheProvider {
 
     public rebuild():Thenable<void> {
         return new Promise<void>((finalResolve, finalReject) => {
+            this.rebuildFromJs()
+            .then(this.rebuildFromHtml)
+            .then(() => {
+                if (this.getConfig_generateCacheFile()) {
+                    let cacheJsonFile = this.getCacheFilename();
+                    fs.writeFile(cacheJsonFile, JSON.stringify(this.entries, null, '  '), (errorMaybe) => {
+                        // if errorMaybe != null something bad happened, could not write to a cache file!!
+                        if (errorMaybe)
+                            finalReject();
+                    });
+                }
+            }).then(() => {
+                finalResolve();
+            });
+        });
+    }
+    public rebuildFromJs():Thenable<void> {
+        return new Promise<void>((finalResolve, finalReject) => {
             this.clearCache();
             vscode.workspace.findFiles('www/**/*.js', 'www/vendor/**').then(wsFiles => {
                 var promise = Promise.all(wsFiles.map(wsFile => {
@@ -44,22 +62,30 @@ export class CodeNavigCacheProvider {
                         this.tryToAddSymbolToCache(relativePath, wsDoc, allText, 'factory', `.factory('`);
                         this.tryToAddSymbolToCache(relativePath, wsDoc, allText, 'constant', `.constant('`);
                         this.tryToAddSymbolToCache(relativePath, wsDoc, allText, 'controller', `.controller('`);
-
-                        console.log(`wsFile.path = ${wsFile.path}`);
                     }, (error) => {
                         // something bad happened, could not load WS file
                         finalReject();
                     });
                 })).then(() => {
-                    if (this.getConfig_generateCacheFile()) {
-                        let cacheJsonFile = this.getCacheFilename();
-                        fs.writeFile(cacheJsonFile, JSON.stringify(this.entries, null, '  '), (errorMaybe) => {
-                            // if errorMaybe != null something bad happened, could not write to a cache file!!
-                            if (errorMaybe)
-                                finalReject();
-                        });
-                    }
-                }).then(() => {
+                    finalResolve();
+                });
+            });
+        });
+    }
+    public rebuildFromHtml():Thenable<void> {
+        return new Promise<void>((finalResolve, finalReject) => {
+            this.clearCache();
+            vscode.workspace.findFiles('www/**/*.tpl.html', 'www/vendor/**').then(wsFiles => {
+                var promise = Promise.all(wsFiles.map(wsFile => {
+                    var relativePath = path.relative(vscode.workspace.rootPath, wsFile.fsPath);
+                    return vscode.workspace.openTextDocument(wsFile.path).then((wsDoc) => {
+                        let allText = wsDoc.getText();
+                        this.tryToAddSymbolToCache(relativePath, wsDoc, allText, 'directive', `.directive('`);
+                    }, (error) => {
+                        // something bad happened, could not load WS file
+                        finalReject();
+                    });
+                })).then(() => {
                     finalResolve();
                 });
             });
