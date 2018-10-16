@@ -1,6 +1,6 @@
-# miktests README
+# angular-js-navigation-map-for-vs-code README
 
-This is the README for your extension "miktests". After writing up a brief description, we recommend including the following sections.
+This is the README for your extension "angular-js-navigation-map-for-vs-code". After writing up a brief description, we recommend including the following sections.
 
 ## Features
 

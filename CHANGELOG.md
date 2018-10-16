@@ -1,5 +1,5 @@
 # Change Log
-All notable changes to the "miktests" extension will be documented in this file.
+All notable changes to the "angular-js-navigation-map-for-vs-code" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 

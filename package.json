@@ -1,7 +1,7 @@
 {
-  "name": "miktests",
-  "displayName": "miktests",
-  "description": "mikhail will test his shit",
+  "name": "angular-js-navigation-map-for-vs-code",
+  "displayName": "angular-js-navigation-map-for-vs-code",
+  "description": "extension for vscode for AngularJS (Angular1) projects",
   "version": "0.0.1",
   "publisher": "miktemk",
   "engines": {
